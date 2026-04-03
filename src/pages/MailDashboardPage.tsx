@@ -7,8 +7,8 @@ export function MailDashboardPage() {
   const { queuedForDashboard, formData } = useWorkspace()
 
   return (
-    <div className="relative z-10 min-h-screen p-6 md:p-10">
-      <div className="mx-auto mb-6 flex max-w-[1400px] flex-wrap items-end justify-between gap-4 border-b border-slate-200/70 pb-5">
+    <div className="ui-page">
+      <div className="ui-container mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/70 pb-5">
         <div className="flex flex-wrap items-end gap-4 sm:gap-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800/80">
@@ -34,7 +34,7 @@ export function MailDashboardPage() {
           </Link>
         </nav>
       </div>
-      <div className="mx-auto max-w-[1400px]">
+      <div className="ui-container">
         <MailDashboard
           generatedEmail={queuedForDashboard}
           prof_email={formData.prof_email}

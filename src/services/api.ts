@@ -6,7 +6,7 @@ const WEBHOOK_BASE_URL = 'https://akazy.zeabur.app'
 const SUBMIT_TASK_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/prof-email-gen`
 
 /** Webhook 2：查询任务状态接口（云端） */
-const CHECK_TASK_STATUS_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/check-email`
+const CHECK_TASK_STATUS_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook-test/check-email`
 
 /** 从 n8n Webhook 常见返回结构里取出扁平的 { status, subject, content } */
 function normalizePollPayload(raw: unknown): {

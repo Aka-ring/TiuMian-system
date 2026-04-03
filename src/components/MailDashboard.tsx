@@ -1,7 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { ArrowRight, Inbox, MailCheck, SendHorizontal, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  ClipboardCopy,
+  Inbox,
+  MailCheck,
+  SendHorizontal,
+  Sparkles,
+  Trash2,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
+import {
+  buildGmailComposeUrl,
+  buildMailtoHref,
+  buildQQMailComposeUrl,
+  copyTextToClipboard,
+  formatFullEmailForCopy,
+} from '../lib/mailComposeLinks'
 import { clearMailBoardStorage, loadMailBoard, saveMailBoard } from '../lib/mailBoardStorage'
 import type { MailCardModel } from '../types'
 
@@ -24,13 +39,6 @@ function createMailId(): string {
   return `mail_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function buildMailtoHref(profEmail: string, subject: string, content: string): string {
-  const to = encodeURIComponent(profEmail.trim())
-  const su = encodeURIComponent(subject)
-  const body = encodeURIComponent(content)
-  return `mailto:${to}?subject=${su}&body=${body}`
-}
-
 type MailSection = 'pending' | 'sent'
 
 type DetailModalState = {
@@ -41,6 +49,41 @@ type DetailModalState = {
 const emptyFocusLinkClass =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white'
 
+type MailProvider = '163' | 'qq' | 'google'
+
+/** 网页写信入口：文案用产品常用称谓；三色浅底区分渠道，风格与看板一致 */
+const MAIL_COMPOSE_CHANNELS: {
+  provider: MailProvider
+  label: string
+  activeClass: string
+  disabledClass: string
+}[] = [
+  {
+    provider: '163',
+    label: '网易邮箱',
+    activeClass:
+      'bg-sky-50 text-sky-900 ring-1 ring-sky-200/85 shadow-sm hover:bg-sky-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50',
+    disabledClass:
+      'cursor-not-allowed bg-sky-50/50 text-sky-300 ring-1 ring-sky-100/70',
+  },
+  {
+    provider: 'qq',
+    label: 'QQ 邮箱',
+    activeClass:
+      'bg-violet-50 text-violet-900 ring-1 ring-violet-200/80 shadow-sm hover:bg-violet-100/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/45',
+    disabledClass:
+      'cursor-not-allowed bg-violet-50/50 text-violet-300 ring-1 ring-violet-100/70',
+  },
+  {
+    provider: 'google',
+    label: 'Gmail',
+    activeClass:
+      'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/85 shadow-sm hover:bg-emerald-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45',
+    disabledClass:
+      'cursor-not-allowed bg-emerald-50/50 text-emerald-300 ring-1 ring-emerald-100/70',
+  },
+]
+
 export default function MailDashboard({ generatedEmail, prof_email }: MailDashboardProps) {
   const boardBoot = useRef(loadMailBoard())
   const [pendingMails, setPendingMails] = useState<MailCardModel[]>(
@@ -49,6 +92,7 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
   const [sentMails, setSentMails] = useState<MailCardModel[]>(() => boardBoot.current.sent)
   const [exitingId, setExitingId] = useState<string | null>(null)
   const [detailModal, setDetailModal] = useState<DetailModalState | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const lastIngestSig = useRef<string>(boardBoot.current.lastIngestSig)
 
   useEffect(() => {
@@ -115,9 +159,27 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
     setPendingMails((prev) => [card, ...prev])
   }, [generatedEmail])
 
-  const openMailto = (subject: string, content: string) => {
-    const href = buildMailtoHref(prof_email, subject, content)
-    window.open(href, '_self', 'noopener,noreferrer')
+  const openCompose = (provider: MailProvider, subject: string, content: string) => {
+    const to = prof_email.trim()
+    if (!to) return
+    if (provider === 'google') {
+      window.open(buildGmailComposeUrl(to, subject, content), '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (provider === 'qq') {
+      window.open(buildQQMailComposeUrl(to, subject, content), '_blank', 'noopener,noreferrer')
+      return
+    }
+    window.open(buildMailtoHref(to, subject, content), '_self', 'noopener,noreferrer')
+  }
+
+  const copyFullEmail = async (item: MailCardModel) => {
+    const text = formatFullEmailForCopy(prof_email, item.subject, item.content)
+    const ok = await copyTextToClipboard(text)
+    if (ok) {
+      setCopiedId(item.id)
+      window.setTimeout(() => setCopiedId(null), 2000)
+    }
   }
 
   const moveToSent = (item: MailCardModel) => {
@@ -128,6 +190,18 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
       setSentMails((prev) => [{ ...item, createdAt: Date.now() }, ...prev])
       setExitingId(null)
     }, 280)
+  }
+
+  const removeMail = (item: MailCardModel, section: MailSection) => {
+    const hint = section === 'pending' ? '待发送' : '已发送'
+    if (!window.confirm(`确定删除该封${hint}邮件？此操作不可撤销。`)) return
+    if (section === 'pending') {
+      setPendingMails((prev) => prev.filter((m) => m.id !== item.id))
+    } else {
+      setSentMails((prev) => prev.filter((m) => m.id !== item.id))
+    }
+    setDetailModal((prev) => (prev?.item.id === item.id ? null : prev))
+    setCopiedId((prev) => (prev === item.id ? null : prev))
   }
 
   const handleClearBoard = () => {
@@ -253,29 +327,55 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
                     {item.content}
                   </p>
 
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {(['163', 'QQ', 'Google'] as const).map((label) => (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    {MAIL_COMPOSE_CHANNELS.map(({ provider, label, activeClass }) => (
                       <button
-                        key={label}
+                        key={provider}
                         type="button"
-                        onClick={() => openMailto(item.subject, item.content)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openCompose(provider, item.subject, item.content)
+                        }}
                         disabled={!prof_email.trim()}
-                        className="group/btn relative overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-55 ${activeClass}`}
                       >
-                        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.18)_45%,transparent_100%)] transition-transform duration-500 group-hover/btn:translate-x-full" />
-                        <span className="relative z-10">{label}</span>
+                        {label}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void copyFullEmail(item)
+                      }}
+                      className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
+                      {copiedId === item.id ? '已复制' : '复制全文'}
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => moveToSent(item)}
-                    className="group/cta relative mt-auto w-full overflow-hidden rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(110deg,transparent_0%,rgba(148,163,184,0.22)_45%,transparent_100%)] transition-transform duration-500 group-hover/cta:translate-x-full" />
-                    <span className="relative z-10">已发送，跟进中</span>
-                  </button>
+                  <div className="mt-auto grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveToSent(item)}
+                      className="group/cta relative overflow-hidden rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
+                    >
+                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(110deg,transparent_0%,rgba(148,163,184,0.22)_45%,transparent_100%)] transition-transform duration-500 group-hover/cta:translate-x-full" />
+                      <span className="relative z-10">已发送，跟进中</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeMail(item, 'pending')
+                      }}
+                      className="inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200/90 bg-rose-50/60 py-2.5 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100/80"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      删除
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -343,17 +443,18 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
                     {item.content}
                   </p>
 
-                  <div className="mt-auto flex flex-wrap gap-2">
-                    {(['163', 'QQ', 'Google'] as const).map((label) => (
-                      <button
-                        key={label}
-                        type="button"
-                        disabled
-                        className="cursor-not-allowed rounded-xl bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-500"
-                      >
-                        {label}
-                      </button>
-                    ))}
+                  <div className="mt-auto">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeMail(item, 'sent')
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200/90 bg-rose-50/60 px-3 py-2.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100/80"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      删除
+                    </button>
                   </div>
                   <p className="mt-3 text-center text-xs font-medium text-slate-400">已读</p>
                 </article>
@@ -414,23 +515,41 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
                 {detailModal.item.content}
               </pre>
             </div>
-            {detailModal.section === 'pending' && (
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 px-6 py-4">
-                {(['163', 'QQ', 'Google'] as const).map((label) => (
+            <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-6 py-4">
+              {detailModal.section === 'pending' && (
+                <>
+                {MAIL_COMPOSE_CHANNELS.map(({ provider, label, activeClass }) => (
                   <button
-                    key={label}
+                    key={provider}
                     type="button"
                     onClick={() =>
-                      openMailto(detailModal.item.subject, detailModal.item.content)
+                      openCompose(provider, detailModal.item.subject, detailModal.item.content)
                     }
                     disabled={!prof_email.trim()}
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-55 ${activeClass}`}
                   >
                     {label}
                   </button>
                 ))}
-              </div>
-            )}
+                <button
+                  type="button"
+                  onClick={() => void copyFullEmail(detailModal.item)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
+                  {copiedId === detailModal.item.id ? '已复制' : '复制全文'}
+                </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => removeMail(detailModal.item, detailModal.section)}
+                className="ml-auto inline-flex items-center gap-1 rounded-xl border border-rose-200/90 bg-rose-50/60 px-4 py-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100/80"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                删除邮件
+              </button>
+            </div>
           </div>
         </div>
       )}

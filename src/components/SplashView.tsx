@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import confetti from 'canvas-confetti'
 import { Plane, Sparkles } from 'lucide-react'
 
 type SplashViewProps = {
@@ -19,9 +20,37 @@ export default function SplashView({ onEnterWorkspace }: SplashViewProps) {
   const handleTakeOff = () => {
     if (isTakingOff) return
     setIsTakingOff(true)
+
+    const palette = ['#f43f5e', '#f59e0b', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899']
+    const common = {
+      particleCount: 110,
+      spread: 62,
+      startVelocity: 48,
+      ticks: 220,
+      scalar: 1.1,
+      zIndex: 1000,
+      colors: palette,
+    }
+    confetti({ ...common, angle: 60, origin: { x: 0, y: 0.7 } })
+    confetti({ ...common, angle: 120, origin: { x: 1, y: 0.7 } })
+
+    window.setTimeout(() => {
+      const followup = {
+        particleCount: 70,
+        spread: 60,
+        startVelocity: 35,
+        ticks: 200,
+        scalar: 0.95,
+        zIndex: 1000,
+        colors: palette,
+      }
+      confetti({ ...followup, angle: 60, origin: { x: 0, y: 0.7 } })
+      confetti({ ...followup, angle: 120, origin: { x: 1, y: 0.7 } })
+    }, 650)
+
     window.setTimeout(() => {
       onEnterWorkspace()
-    }, 800)
+    }, 700)
   }
 
   const containerVariants = {
@@ -43,17 +72,16 @@ export default function SplashView({ onEnterWorkspace }: SplashViewProps) {
       transition: { duration: 0.72 },
     },
   }
-
   return (
     <AnimatePresence>
       <motion.div
-        className="relative z-10 flex min-h-screen flex-col overflow-hidden px-4 py-10 sm:px-6 md:py-14"
+        className="relative z-10 flex min-h-screen flex-col overflow-hidden py-10 md:py-14"
         variants={containerVariants}
         initial="initial"
         animate={isTakingOff ? 'takingOff' : 'initial'}
         exit="takingOff"
       >
-          <header className="mx-auto flex w-full max-w-[1400px] items-end justify-between gap-6 border-b border-slate-200/70 pb-6">
+          <header className="ui-container flex items-end justify-between gap-6 border-b border-slate-200/70 pb-6">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800/80">
                 保研套磁
@@ -68,7 +96,7 @@ export default function SplashView({ onEnterWorkspace }: SplashViewProps) {
             </div>
           </header>
 
-          <div className="flex flex-1 items-center justify-center py-8 md:py-12">
+          <div className="ui-container flex flex-1 items-center justify-center py-8 md:py-12">
             <motion.div
               className="relative w-full max-w-[min(40rem,100%)] overflow-hidden rounded-2xl bg-white/95 p-8 shadow-lg shadow-slate-200/45 ring-1 ring-slate-100 md:p-11"
               initial={{ y: 28, opacity: 0, scale: 0.985 }}
@@ -83,7 +111,7 @@ export default function SplashView({ onEnterWorkspace }: SplashViewProps) {
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold tracking-wide text-white shadow-sm ring-1 ring-slate-800/60">
                   <Sparkles className="h-3.5 w-3.5 text-sky-300" />
-                  仪式感入口
+                  阮伊一AI
                 </span>
                 <span className="text-xs font-medium text-slate-400">Step 01 · 启程</span>
               </div>

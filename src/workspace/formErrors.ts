@@ -20,10 +20,16 @@ function validateField(next: FormData, field: keyof FormData, errors: FormErrors
   if (field === 'url' && next.match_type === 'url') {
     const text = String(v ?? '').trim()
     errors.url = text.length > 0 ? '' : 'URL 模式下，此字段必填'
+  } else if (field === 'url') {
+    // 非 URL 模式时清空历史 URL 错误，避免按钮被误禁用
+    errors.url = ''
   }
   if (field === 'zhaiyao' && next.match_type === 'abstract') {
     const text = String(v ?? '').trim()
     errors.zhaiyao = text.length > 0 ? '' : '摘要模式下，此字段必填'
+  } else if (field === 'zhaiyao') {
+    // 非摘要模式时清空历史摘要错误，避免按钮被误禁用
+    errors.zhaiyao = ''
   }
 }
 

@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* 全站设计 token：宽度、圆角、阴影层级 — 便于商业交付统一迭代 */
+:root {
+  --ui-max-width: 1600px;
+  --ui-radius-card: 1rem;
+  --ui-radius-card-lg: 1.25rem;
+  --ui-shadow-card: 0 10px 15px -3px rgb(15 23 42 / 0.06),
+    0 4px 6px -4px rgb(15 23 42 / 0.05);
+  --ui-shadow-card-hover: 0 20px 25px -5px rgb(15 23 42 / 0.08),
+    0 8px 10px -6px rgb(15 23 42 / 0.06);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -13,6 +24,20 @@
     line-height: 1.6;
     color: rgb(30 41 59);
     font-feature-settings: "kern" 1, "liga" 1;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+  }
+}
+
+@layer components {
+  /** 主内容区：与页脚、工作台、看板同一最大宽度 */
+  .ui-container {
+    @apply mx-auto w-full max-w-[var(--ui-max-width)] px-4 sm:px-6 md:px-10;
+  }
+
+  /** 全屏页面内边距（与现有 p-6 md:p-10 一致） */
+  .ui-page {
+    @apply relative z-10 min-h-screen p-6 md:p-10;
   }
 }
 
@@ -36,3 +61,41 @@
     transform: translateY(0) scale(1);
   }
 }
+
+.workspace-body-editor {
+  min-height: clamp(360px, 52vh, 680px);
+}
+
+/* 系统偏好：减少动态效果 — 仅影响我们自写的 keyframes，不粗暴打断 Framer 业务动画 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes cardIn {
+    0% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .app-particles-layer {
+    display: none !important;
+  }
+}
+
+html[data-motion="reduce"] .app-particles-layer {
+  display: none !important;
+}
+

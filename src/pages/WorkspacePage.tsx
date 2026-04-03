@@ -1,7 +1,10 @@
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { WorkspaceWelcomeOverlay } from '../components/WorkspaceWelcomeOverlay'
 import { useWorkspace } from '../context/WorkspaceContext'
+import { useWorkspaceWelcomeFx } from '../hooks/useWorkspaceWelcomeFx'
 import { navFocusClass } from '../workspace/constants'
 import type { UiStatus } from '../workspace/boot'
 
@@ -30,7 +33,25 @@ function WorkspaceStatusBadge({ status }: { status: UiStatus }) {
   )
 }
 
+const fakeProgressStages = [
+  { until: 24, label: '正在分析导师信息...' },
+  { until: 52, label: '正在匹配简历与研究方向...' },
+  { until: 78, label: '正在组织邮件结构与语气...' },
+  { until: 95, label: '正在生成邮件正文...' },
+  { until: 100, label: '即将完成，请稍候...' },
+]
+
 export function WorkspacePage() {
+  const location = useLocation()
+  const routeState = location.state as
+    | { playWelcomeFx?: boolean; skipWelcomeFx?: boolean }
+    | null
+  const welcomeFxMode = routeState?.skipWelcomeFx
+    ? 'skip'
+    : routeState?.playWelcomeFx
+      ? 'force'
+      : 'auto'
+
   const {
     formData,
     handleFieldChange,
@@ -50,10 +71,44 @@ export function WorkspacePage() {
 
   const fieldClass =
     'w-full rounded-xl border-0 bg-white px-4 py-3 text-slate-900 shadow-sm ring-1 ring-slate-200/90 placeholder:text-slate-400 focus:ring-2 focus:ring-sky-500 focus:outline-none'
+  const ctaButtonSizeClass = 'h-12 w-full rounded-xl px-5 text-sm font-semibold'
+  const ctaButtonMotionClass =
+    'transition-all duration-150 ease-out active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/85'
+  const ctaLabelClass = 'inline-block min-w-[13em] text-center tracking-[0.01em]'
+  const [fakeProgress, setFakeProgress] = useState(0)
+  const { showWelcome } = useWorkspaceWelcomeFx(welcomeFxMode)
+
+  useEffect(() => {
+    if (uiStatus !== 'processing') {
+      setFakeProgress(0)
+      return
+    }
+
+    setFakeProgress(3)
+    const timer = window.setInterval(() => {
+      setFakeProgress((prev) => {
+        if (prev >= 95) return 95
+        const speed = prev < 35 ? 4 : prev < 70 ? 2 : 1
+        const next = prev + Math.random() * speed + 0.6
+        return Math.min(95, next)
+      })
+    }, 500)
+
+    return () => window.clearInterval(timer)
+  }, [uiStatus])
+
+  const fakeStatusText = useMemo(() => {
+    const p = Math.round(fakeProgress)
+    return (
+      fakeProgressStages.find((s) => p <= s.until)?.label ??
+      fakeProgressStages[fakeProgressStages.length - 1].label
+    )
+  }, [fakeProgress])
 
   return (
-    <main className="relative z-10 min-h-screen p-6 md:p-10">
-      <div className="mx-auto mb-6 flex w-full max-w-[1400px] flex-wrap items-end justify-between gap-4 border-b border-slate-200/70 pb-5">
+    <main className="ui-page">
+      <WorkspaceWelcomeOverlay show={showWelcome} />
+      <div className="ui-container mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/70 pb-5">
         <div className="flex flex-wrap items-end gap-4 sm:gap-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800/80">
@@ -88,8 +143,8 @@ export function WorkspacePage() {
         </nav>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1400px] gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl bg-white/95 p-6 shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 md:p-8">
+      <div className="ui-container grid items-stretch gap-6 lg:grid-cols-2">
+        <section className="min-h-[72vh] w-full rounded-2xl bg-white/95 p-6 shadow-lg shadow-slate-200/50 ring-1 ring-slate-100 md:p-8">
           <header className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-5">
             <div className="min-w-0 space-y-1">
               <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
@@ -268,14 +323,16 @@ export function WorkspacePage() {
             <button
               type="submit"
               disabled={uiStatus === 'processing' || hasErrors}
-              className={`w-full rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 ${navFocusClass}`}
+              className={`${ctaButtonSizeClass} ${ctaButtonMotionClass} bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/30 hover:bg-slate-800 hover:shadow-md active:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60`}
             >
-              {uiStatus === 'processing' ? '处理中…' : '提交并生成邮件'}
+              <span className={ctaLabelClass}>
+                {uiStatus === 'processing' ? '处理中…' : '提交并生成邮件'}
+              </span>
             </button>
           </form>
         </section>
 
-        <section className="rounded-2xl bg-slate-900/90 p-6 text-slate-200 shadow-xl shadow-slate-900/30 ring-1 ring-slate-700/75 md:p-8">
+        <section className="flex min-h-[72vh] w-full flex-col rounded-2xl bg-slate-900/90 p-6 text-slate-200 shadow-xl shadow-slate-900/30 ring-1 ring-slate-700/75 md:p-8">
           <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-600/40 pb-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-400/90">
@@ -300,12 +357,21 @@ export function WorkspacePage() {
           </header>
 
           {uiStatus === 'processing' && (
-            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/55">
-              <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-sky-400 via-sky-200 to-sky-500" />
-            </div>
+            <>
+              <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-400">
+                <span>{fakeStatusText}</span>
+                <span>{Math.round(fakeProgress)}%</span>
+              </div>
+              <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/55">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-sky-500 via-sky-300 to-sky-500 shadow-[0_0_12px_rgba(56,189,248,0.42)] transition-[width] duration-500 ease-out"
+                  style={{ width: `${fakeProgress}%` }}
+                />
+              </div>
+            </>
           )}
 
-          <div className="flex h-[700px] flex-col gap-4 overflow-hidden rounded-xl border border-slate-600/40 bg-slate-800/42 p-5 font-mono text-sm shadow-inner shadow-slate-950/35 brightness-[1.03]">
+          <div className="flex flex-1 flex-col gap-4 w-full overflow-hidden rounded-xl border border-slate-600/40 bg-slate-800/42 p-5 font-mono text-sm shadow-inner shadow-slate-950/35 brightness-[1.03]">
             <p className="shrink-0 text-xs text-slate-500">{`// ${uiStatus === 'processing' ? 'generating' : uiStatus === 'success' ? 'ready' : 'idle'}`}</p>
 
             {uiStatus === 'processing' && !emailResult ? (
@@ -366,7 +432,7 @@ export function WorkspacePage() {
                         : '尊敬的导师您好，\n\n提交生成后，正文将显示在此处。\n'
                     }
                     readOnly={!emailResult}
-                    className="h-full min-h-[320px] w-full resize-y rounded-lg border-0 bg-slate-900/48 px-3 py-2.5 leading-relaxed text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500/80 focus:outline-none read-only:cursor-not-allowed read-only:opacity-70"
+                    className="workspace-body-editor h-full w-full resize-y rounded-lg border-0 bg-slate-900/48 px-3 py-2.5 leading-relaxed text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500/80 focus:outline-none read-only:cursor-not-allowed read-only:opacity-70"
                   />
                 </div>
               </>
@@ -380,17 +446,17 @@ export function WorkspacePage() {
                 onClick={handleStoreToDashboard}
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 20 }}
-                className="flex w-full touch-manipulation select-none items-center justify-center rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-slate-950 shadow-sm ring-1 ring-white/85 transition-colors duration-150 ease-out hover:bg-slate-100 hover:ring-white active:bg-slate-200 active:shadow-inner active:ring-slate-300/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                className={`${ctaButtonSizeClass} ${ctaButtonMotionClass} flex touch-manipulation select-none items-center justify-center bg-white text-slate-950 shadow-sm ring-1 ring-white/85 hover:bg-slate-100 hover:ring-white hover:shadow-md active:bg-slate-200`}
               >
-                修改完成，存入邮件看板
+                <span className={ctaLabelClass}>修改完成，存入邮件看板</span>
               </motion.button>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-full cursor-not-allowed rounded-xl border border-dashed border-slate-600/50 bg-slate-800/50 px-5 py-3.5 text-sm font-semibold text-slate-500"
+                className={`${ctaButtonSizeClass} ${ctaButtonMotionClass} cursor-not-allowed border border-dashed border-slate-500/45 bg-white/80 text-slate-500`}
               >
-                生成后可存入邮件看板
+                <span className={ctaLabelClass}>生成后可存入邮件看板</span>
               </button>
             )}
           </div>
