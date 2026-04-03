@@ -3,10 +3,10 @@ import type { FormData } from '../types'
 const WEBHOOK_BASE_URL = 'https://akazy.zeabur.app'
 
 /** Webhook 1：提交生成任务接口（云端） */
-const SUBMIT_TASK_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook-test/prof-email-gen`
+const SUBMIT_TASK_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/prof-email-gen`
 
 /** Webhook 2：查询任务状态接口（云端） */
-const CHECK_TASK_STATUS_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook-test/check-email`
+const CHECK_TASK_STATUS_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/check-email`
 
 /** 从 n8n Webhook 常见返回结构里取出扁平的 { status, subject, content } */
 function normalizePollPayload(raw: unknown): {
