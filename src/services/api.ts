@@ -1,23 +1,7 @@
 import type { FormData } from '../types'
 
-const DEFAULT_REMOTE_WEBHOOK_BASE = 'https://akazy.zeabur.app'
-
-/**
- * 开发环境默认走相对路径，由 Vite proxy 转发到本机 n8n（见 vite.config.ts）。
- * 生产/预览默认直连 Zeabur；部署到云端时也可通过 VITE_WEBHOOK_BASE_URL 覆盖。
- */
-function getWebhookBaseUrl(): string {
-  const fromEnv = import.meta.env.VITE_WEBHOOK_BASE_URL
-  if (typeof fromEnv === 'string' && fromEnv.trim() !== '') {
-    return fromEnv.replace(/\/$/, '')
-  }
-  if (import.meta.env.DEV) {
-    return ''
-  }
-  return DEFAULT_REMOTE_WEBHOOK_BASE
-}
-
-const WEBHOOK_BASE_URL = getWebhookBaseUrl()
+// Hardcode：线上通过浏览器直接访问 Zeabur n8n Webhook（避免环境变量导致基址不一致）
+const WEBHOOK_BASE_URL = 'https://akazy.zeabur.app'
 
 /** Webhook 1：提交生成任务接口 */
 const SUBMIT_TASK_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/prof-email-gen`
@@ -29,14 +13,14 @@ function networkHintForSubmit(): string {
   if (import.meta.env.DEV) {
     return '网络连接失败，请确认本机 n8n 已启动（默认 5678）且 Vite 已将 /webhook 代理到该端口'
   }
-  return '网络连接失败或浏览器拦截了跨域请求。请在 n8n/网关为当前网站域名配置 CORS（Access-Control-Allow-Origin），并确认 VITE_WEBHOOK_BASE_URL 指向可访问的 Webhook 根地址'
+  return '网络连接失败或浏览器拦截了跨域请求。请在 n8n/网关为当前网站域名配置 CORS（Access-Control-Allow-Origin），并确认 Webhook 已发布且可访问'
 }
 
 function networkHintForPoll(): string {
   if (import.meta.env.DEV) {
     return '网络连接失败，请确认本机 n8n（5678）已启动且 Vite 代理可访问'
   }
-  return '无法连接任务查询接口（常见：跨域 CORS 未放行当前站点）。请在 n8n 或反向代理上允许浏览器来源，并确认「查询任务」Webhook 已发布；也可在构建环境设置 VITE_WEBHOOK_BASE_URL'
+  return '无法连接任务查询接口（常见：跨域 CORS 未放行当前站点或查询 Webhook 未发布）。请在 n8n 或反向代理上允许浏览器来源，并确认「查询任务」Webhook 已发布'
 }
 
 /** 从 n8n Webhook 常见返回结构里取出扁平的 { status, subject, content } */
