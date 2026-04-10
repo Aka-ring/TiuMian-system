@@ -7,6 +7,10 @@ function validateField(next: FormData, field: keyof FormData, errors: FormErrors
   if (field === 'prof_name' || field === 'institution') {
     errors[field] = v && String(v).trim().length > 0 ? '' : '请填写此字段'
   }
+  if (field === 'applicant_direction') {
+    errors.applicant_direction =
+      v && String(v).trim().length > 0 ? '' : '请填写申请方向'
+  }
   if (field === 'prof_email') {
     const text = String(v).trim()
     const ok =
@@ -65,6 +69,7 @@ export function validateFormForSubmit(formData: FormData): FormErrors {
   checkRequired('prof_name', '请填写导师姓名')
   checkRequired('prof_email', '请填写导师邮箱')
   checkRequired('institution', '请填写学校 / 机构')
+  checkRequired('applicant_direction', '请填写申请方向')
   checkRequired('resume_text', '请粘贴你的简历文本')
 
   if (formData.match_type === 'url') {

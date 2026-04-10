@@ -1,13 +1,19 @@
 import type { FormData } from '../types'
 
-// Hardcode：线上通过浏览器直接访问 Zeabur n8n Webhook（避免环境变量导致基址不一致）
-const WEBHOOK_BASE_URL = 'https://akazy.zeabur.app'
+const DEFAULT_SUBMIT_TASK_WEBHOOK_URL =
+  'https://akazy.zeabur.app/webhook/prof-email-gen'
+const DEFAULT_CHECK_TASK_STATUS_WEBHOOK_URL =
+  'https://akazy.zeabur.app/webhook/check-email'
 
-/** Webhook 1：提交生成任务接口 */
-const SUBMIT_TASK_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/prof-email-gen`
+/** Webhook 1：提交生成任务接口（支持 .env 覆盖） */
+const SUBMIT_TASK_WEBHOOK_URL =
+  import.meta.env.VITE_SUBMIT_TASK_WEBHOOK_URL?.trim() ||
+  DEFAULT_SUBMIT_TASK_WEBHOOK_URL
 
-/** Webhook 2：查询任务状态（先试 test 路径，再试正式路径） */
-const CHECK_TASK_STATUS_WEBHOOK_URL = `${WEBHOOK_BASE_URL}/webhook/check-email`
+/** Webhook 2：查询任务状态（支持 .env 覆盖） */
+const CHECK_TASK_STATUS_WEBHOOK_URL =
+  import.meta.env.VITE_CHECK_TASK_STATUS_WEBHOOK_URL?.trim() ||
+  DEFAULT_CHECK_TASK_STATUS_WEBHOOK_URL
 
 function networkHintForSubmit(): string {
   if (import.meta.env.DEV) {
@@ -139,6 +145,7 @@ function pickFirstString(
  */
 export async function submitTask(data: FormData, taskId: string): Promise<void> {
   try {
+    const applicantDirection = data.applicant_direction.trim()
     const response = await fetch(SUBMIT_TASK_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -147,6 +154,10 @@ export async function submitTask(data: FormData, taskId: string): Promise<void> 
       body: JSON.stringify({
         task_id: taskId,
         ...data,
+        // 兼容不同后端字段命名，确保可按申请方向生成主题
+        applicant_direction: applicantDirection,
+        direction: applicantDirection,
+        research_direction: applicantDirection,
       }),
     })
 

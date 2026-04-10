@@ -1,7 +1,12 @@
 /**
  * 拉起邮件撰写：收件人、主题、正文预填。
- * 说明：各厂商网页版写信能力差异大；Gmail 有稳定 compose 参数；QQ 使用 wx 写信页；163 网页无统一公开深链，使用 mailto 走系统默认客户端（可配合网易邮箱大师等）。
+ * 说明：Gmail 有稳定 compose 参数；QQ 使用 wx 写信页；网易网页版无稳定公开深链，按钮打开官方网页版入口，登录后自行粘贴收件人与正文。
  */
+
+/** 网易邮箱网页版（海外/加速入口，与产品约定一致） */
+export function buildNetEaseWebMailUrl(): string {
+  return 'https://hw.mail.163.com/'
+}
 
 export function buildMailtoHref(to: string, subject: string, body: string): string {
   const t = encodeURIComponent(to.trim())

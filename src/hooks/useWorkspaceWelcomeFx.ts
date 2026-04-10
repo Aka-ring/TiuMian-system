@@ -40,11 +40,11 @@ export function useWorkspaceWelcomeFx(mode: WelcomeFxMode = 'auto') {
 
     const palette = ['#f43f5e', '#f59e0b', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899']
     const common = {
-      particleCount: 110,
-      spread: 62,
-      startVelocity: 48,
-      ticks: 210,
-      scalar: 1.1,
+      particleCount: 78,
+      spread: 54,
+      startVelocity: 38,
+      ticks: 185,
+      scalar: 0.98,
       zIndex: 1000,
       colors: palette,
     }
@@ -53,7 +53,7 @@ export function useWorkspaceWelcomeFx(mode: WelcomeFxMode = 'auto') {
     confetti({ ...common, angle: 120, origin: { x: 1, y: 0.7 } })
 
     // 与纸屑可见时长对齐：欢迎与撒花同起同落
-    const welcomeTimer = window.setTimeout(() => setShowWelcome(false), 2200)
+    const welcomeTimer = window.setTimeout(() => setShowWelcome(false), 1950)
 
     return () => {
       window.clearTimeout(welcomeTimer)

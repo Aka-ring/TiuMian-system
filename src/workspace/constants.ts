@@ -10,6 +10,7 @@ export const initialFormData: FormData = {
   prof_name: '',
   prof_email: '',
   institution: '',
+  applicant_direction: '',
   resume_text: '',
   match_type: 'url',
   url: '',

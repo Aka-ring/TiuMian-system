@@ -12,7 +12,7 @@ import {
 import { Link } from 'react-router-dom'
 import {
   buildGmailComposeUrl,
-  buildMailtoHref,
+  buildNetEaseWebMailUrl,
   buildQQMailComposeUrl,
   copyTextToClipboard,
   formatFullEmailForCopy,
@@ -170,7 +170,10 @@ export default function MailDashboard({ generatedEmail, prof_email }: MailDashbo
       window.open(buildQQMailComposeUrl(to, subject, content), '_blank', 'noopener,noreferrer')
       return
     }
-    window.open(buildMailtoHref(to, subject, content), '_self', 'noopener,noreferrer')
+    if (provider === '163') {
+      window.open(buildNetEaseWebMailUrl(), '_blank', 'noopener,noreferrer')
+      return
+    }
   }
 
   const copyFullEmail = async (item: MailCardModel) => {

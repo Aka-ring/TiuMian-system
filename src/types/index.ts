@@ -22,6 +22,13 @@ export interface FormData {
   institution: string
 
   /**
+   * 申请方向：
+   * 候选人希望申请的研究方向（如生物信息学、细胞生物学等），
+   * 用于邮件主题与正文中的方向定制。
+   */
+  applicant_direction: string
+
+  /**
    * 简历文本：
    * 候选人的核心背景信息（经历、成果、方向等），
    * 是生成高质量套磁邮件的主要输入之一。

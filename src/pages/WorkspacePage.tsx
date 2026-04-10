@@ -216,6 +216,23 @@ export function WorkspacePage() {
                   <p className="text-xs text-rose-500">{formErrors.institution}</p>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">申请方向</label>
+                <input
+                  type="text"
+                  value={formData.applicant_direction}
+                  onChange={(event) =>
+                    handleFieldChange('applicant_direction', event.target.value)
+                  }
+                  required
+                  placeholder="例如：细胞生物学 / 机器学习 / 结构工程"
+                  className={fieldClass}
+                />
+                {formErrors.applicant_direction && (
+                  <p className="text-xs text-rose-500">{formErrors.applicant_direction}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-3">

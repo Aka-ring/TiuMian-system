@@ -31,6 +31,13 @@ import { useTaskPolling } from '../hooks/useTaskPolling'
 
 type QueuedMail = { subject: string; content: string }
 
+function patchSubjectDirection(subject: string, direction: string): string {
+  const nextDirection = direction.trim()
+  if (!nextDirection) return subject
+  if (!subject.includes('矿业工程')) return subject
+  return subject.replace(/矿业工程/g, nextDirection)
+}
+
 type WorkspaceContextValue = {
   formData: FormData
   formErrors: FormErrors
@@ -65,15 +72,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     null,
   )
   const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const lastSubmittedDirectionRef = useRef(
+    w0.formData.applicant_direction?.trim() ?? '',
+  )
 
   const onPollSuccess = useCallback(
     ({ taskId, subject, content }: { taskId: string; subject: string; content: string }) => {
+      const patchedSubject = patchSubjectDirection(
+        subject,
+        lastSubmittedDirectionRef.current,
+      )
       setEmailResult({
         task_id: taskId,
-        subject,
+        subject: patchedSubject,
         content,
       })
-      setPreviewSubject(subject)
+      setPreviewSubject(patchedSubject)
       setPreviewContent(content)
       setUiStatus('success')
     },
@@ -175,6 +189,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setPreviewContent('')
 
       const taskId = createTaskId()
+      lastSubmittedDirectionRef.current = formData.applicant_direction.trim()
 
       try {
         await submitTask(formData, taskId)
